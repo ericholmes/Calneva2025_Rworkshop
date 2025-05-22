@@ -2,6 +2,13 @@
 # Written for the Cal-Neva AFS workshop 2025-05-30 in Lodi
 # Author: Eric Holmes, contact: eric.holmes@water.ca.gov
 
+# Skills: 
+#         1) learn how to trouble shoot your code: forums, help documents
+#             a. ask the right questions: be explicit
+#         2) package knowledge
+#         3) work step by step: 
+#             a. use an outline to write code like you write an essay
+
 ## Load Libraries -----------------------------------------------------------
 
 library(tidyverse)
@@ -18,8 +25,9 @@ df[1,1]
 df[1,]
 #All rows and second column
 df[,2]
-
+df[,1]
 ## Operators ----------------------------------------------------------------
+## ==, \ & 
 
 ##Equal to
 df[df$col1 == "a",]
@@ -92,9 +100,6 @@ if(exists("df4")){print("df4 already exists, removing df4")
 
 ## dplyr: Split-apply-combine -----------------------------------------------
 
-library(dplyr)
-library(ggplot2)
-
 df5 <- data.frame(col1 = rep(letters[1:5], each = 100),
                   col2 = rep(1:5, each = 100) * runif(5*100,0,2))
 
@@ -129,9 +134,6 @@ key <- data.frame(col1 = letters[1:5], fruit = c("apple", "banana", "cantelope",
 df5merge <- merge(df5, key, by = "col1", all.x = T)
 
 ## Basic mapping tutorial with simple features (sf) package -----------------
-
-library(sf)
-library(leaflet)
 
 # Define domain for coordinates
 xmin <- -122

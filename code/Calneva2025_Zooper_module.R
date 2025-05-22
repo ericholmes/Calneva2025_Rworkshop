@@ -5,16 +5,6 @@
 ## This is a data exploration script working with data from the Zooper R package created by folks at the IEP.
 ## More details on the Zooper package can be found here: https://github.com/InteragencyEcologicalProgram/zooper
 
-##In this script we will practice:
-##    1) binning zooplankton taxa into operational taxanomic units (Orders)
-##    2) plotting zooplankton data in a time series, binning by day of year, and by month
-##    3) joining zooplankton data with water year type and flow data covariates
-##    4) plotting the sampling sites on various map types (using base and leaflet)
-##    5) spatial interpolation of zooplankton CPUE to a raster
-##    6) constructing a loop to output annual delta cladocera spatial distribution
-##
-##Written for AFS meeting 2025-5-30 by Eric Holmes
-
 ## ****Power of intuition****
 ##  Find and download data
 ##  Prepare the data
@@ -26,6 +16,8 @@
 ##    NMDS
 ##  advanced exploration: mechanics
 ##    boosted regression trees + flow thresholds
+##    spatial interpolation of zooplankton CPUE to a raster
+##    constructing a loop to output annual delta cladocera spatial distribution
 
 # Load libraries ----------------------------------------------------------
 
@@ -104,6 +96,7 @@ wytype <- janitor::clean_names(wytype)
 wytype$sac_yr_typefac <- factor(trimws(wytype$sac_yr_type), levels = c("W", "AN", "BN", "D", "C"))
 
 ### Download zooplankton data ----
+
 ##Function from Zooper package to download and synthesize zoop data from multiple surveys
 ##Sources:  "EMP" = Environmental Monitoring Program, "20mm" = 20 millimeter survey,
 ##          "FMWT" = Fall midwater trawl, "FRP" = Fish restoration program,
@@ -300,7 +293,7 @@ ggplot() +
   theme_bw() + theme(legend.position = "bottom", legend.title = element_blank())
 
 ### Spatial join delta regions -----
-
+sfemap
 ##convert nmds data output to sf object
 data.scoressf <- st_as_sf(data.scores, 
                           coords = c("Longitude", "Latitude"),
@@ -324,7 +317,7 @@ ggplot() +
   stat_ellipse(data = dsjoin[,], aes(x = NMDS1, y = NMDS2, color = Year))+
   geom_segment(data = species.scores, aes(x=0, xend=NMDS1, y=0, yend=NMDS2),
                arrow = arrow(length = unit(0.25, "cm")),
-               colour="black", alpha = .2, size = 2) +
+               colour="black", alpha = .2, linewidth = 2) +
   geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species), alpha=1, size = 3) +
   theme_bw() + theme(legend.position = "bottom", legend.title = element_blank()) + 
   facet_wrap(Regionfac ~ .)
@@ -372,21 +365,20 @@ dtoply <- dto[dto$month %in% 1:5,] %>% group_by(wy) %>% summarize(meanflow = mea
 
 ##Plot log cladocera CPUE versus param_val
 ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
-                zooply$wy < 2020 & grepl(zooply$Source, pattern = "20mm") &
+                grepl(zooply$Source, pattern = "20mm") &
                 zooply$group %in% "Branchiopoda",], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
-  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red")
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw()
 
-ggplot(zooply[zooply$Station %in% "NZ028" & 
-                zooply$wy < 2020 &
+ggplot(zooply[zooply$Station %in% "342" & 
                 zooply$group %in% "Branchiopoda" &
                 zooply$month %in% c(1:3),], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
-  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red")
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw()
 
 ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
-                zooply$wy < 2020 & grepl(zooply$Source, pattern = "EMP") &
+                grepl(zooply$Source, pattern = "EMP") &
                 zooply$group %in% "Branchiopoda" & 
                 zooply$month %in% c(10:12, 1:3),], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
-  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red")
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw()
 
 ### Prepare spatial data ----
 
@@ -462,7 +454,7 @@ for(i in unique(cladsp$wy)){
   cladrasdelta <- mask(raster(cladidw), deltasp)
   
   ##Save plot of interpolated values for each water year
-  ##NOTE: will fail if you do not have an output/Cladocera_annual folder in your working directory
+  ##NOTE: will fail if you do not have an output/Branchiopoda_annual folder in your working directory
   png(paste("output/Branchiopoda_annual/Branchiopoda_", i, ".png", sep = ""), 
       height = 7, width = 9, unit = "in", res = 300)
   
@@ -485,7 +477,7 @@ for(i in unique(cladsp$wy)){
 
 # Create animation --------------------------------------------------------
 
-##Loads the images into memory, joins, and outputs an animation gif
+##Use the magick package to load, scale, andjoin images in an animated gif
 list.files(path='output/Branchiopoda_annual/', pattern = '*.png', full.names = TRUE) %>% 
   image_read() %>% # reads each path file
   image_scale("1000") %>% # resize image
