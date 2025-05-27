@@ -2,12 +2,14 @@
 # Written for the Cal-Neva AFS workshop 2025-05-30 in Lodi
 # Author: Eric Holmes, contact: eric.holmes@water.ca.gov
 
-# Skills: 
-#         1) learn how to trouble shoot your code: forums, help documents
-#             a. ask the right questions: be explicit
+# Skills for new coders: 
+#         1) learn how to trouble shoot your code: 
+#             a. reousrces: help documents, forums, AI chatbots
+#             b. ask the right questions: be explicit
+#             c. know how to make a minimal reproducible example
 #         2) package knowledge
-#         3) work step by step: 
-#             a. use an outline to write code like you write an essay
+#         3) Break a large project into components and work step by step:
+#             a. create an outline to write code like you would write an essay
 
 ## Load Libraries -----------------------------------------------------------
 
@@ -25,9 +27,9 @@ df[1,1]
 df[1,]
 #All rows and second column
 df[,2]
-df[,1]
+
 ## Operators ----------------------------------------------------------------
-## ==, \ & 
+# == != > < >= | & %in% <- + - ^
 
 ##Equal to
 df[df$col1 == "a",]
@@ -99,9 +101,6 @@ if(exists("df4")){print("df4 already exists, removing df4")
     df4 = create_df(1:26)}
 
 ## dplyr: Split-apply-combine -----------------------------------------------
-
-df5 <- data.frame(col1 = rep(letters[1:5], each = 100),
-                  col2 = rep(1:5, each = 100) * runif(5*100,0,2))
 
 df5 <- data.frame(col1 = rep(letters[1:5], each = 100),
                   col2 = rep(1:5, each = 100) + rnorm(n = 5*100, mean = 1, sd = 1))

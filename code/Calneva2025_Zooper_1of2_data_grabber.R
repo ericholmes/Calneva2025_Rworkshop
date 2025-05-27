@@ -2,7 +2,6 @@
 ## Written for the Cal-Neva AFS workshop 2025-05-30 in Lodi
 ## Author: Eric Holmes, contact: eric.holmes@water.ca.gov
 
-## This is a data exploration script working with data from the Zooper R package created by folks at the IEP.
 ## More details on the Zooper package can be found here: https://github.com/InteragencyEcologicalProgram/zooper
 
 # Load libraries ----------------------------------------------------------
@@ -66,7 +65,6 @@ wytype <- janitor::clean_names(wytype)
 wytype$sac_yr_typefac <- factor(trimws(wytype$sac_yr_type), levels = c("W", "AN", "BN", "D", "C"))
 
 ### Download zooplankton data ----
-
 ##Function from Zooper package to download and synthesize zoop data from multiple surveys
 ##Sources:  "EMP" = Environmental Monitoring Program, "20mm" = 20 millimeter survey,
 ##          "FMWT" = Fall midwater trawl, "FRP" = Fish restoration program,
@@ -90,13 +88,12 @@ zoop$wy <- ifelse(zoop$month %in% c(10:12), zoop$year + 1, zoop$year)
 ## Issue: UnID taxa limits grouping to the Class level
 zoop$group <- ifelse(is.na(zoop$Class) == T, zoop$Phylum, zoop$Class)
 zoop$group <- ifelse(zoop$group == "Eurotatoria", "Rotifera", 
-                     ifelse(zoop$group %in% c("Insecta", "Annelida", "Ostracoda", "Malacostraca"), 
+                     ifelse(zoop$group %in% c("Insecta", "Annelida"), 
                             "other", zoop$group))
 
 # Save data -----------------------------------------------------------------
-## Save downloaded and prepared dataframes in an Rdata file
+## Request user input before saving downloaded and prepared data frames in an Rdata file
 ## Rdata files retain the structure of the data and are compressed to take up less disk space
-## Added a conditional awaiting user input deciding whether to save data
 
-if(readline(prompt = "Save data? (y/n):") == "y"){save(zoop, wytype, dto, 
+if(readline(prompt = "Save data? (y/n):") == "y"){save(zoop, wytype, dto, WW_Delta, R_EDSM_Regions_1718P1,
      file = "data/Calneva2025_workshop_data.Rdata")}

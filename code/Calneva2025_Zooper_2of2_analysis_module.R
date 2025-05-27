@@ -6,18 +6,20 @@
 ## More details on the Zooper package can be found here: https://github.com/InteragencyEcologicalProgram/zooper
 
 ## ****Power of intuition****
-##  Find and download data
-##  Prepare the data
-##  Binning 
-##    boxplots (spatial, k-means)
-##  Preliminary exploration
-##    mixed effect modeling 
-##    Mapping + time series : merge with delta regions (deltamapr)
-##    NMDS
-##  advanced exploration: mechanics
-##    boosted regression trees + flow thresholds
-##    spatial interpolation of zooplankton CPUE to a raster
-##    constructing a loop to output annual delta cladocera spatial distribution
+## Scenario: We would like to understand the spatial and temporal patterns in zooplankton community data
+## collected over the past 20 years in the Sacramento-San Joaquin Delta
+
+##  Steps: 
+##  1) Find and download data (use Calneva2025_Zooper_1of2_data_grabber.R)
+##  2) Prepare the data (column formatting, data aggregation/binning)
+##  3) Exploratory analysis
+##      (Time series plots, map sites, boxplots, species/taxa group barplots)
+##  4) Advanced analysis 
+##      (NMDS community analysis, spatial join, spatial interpolation, 
+##        add covariates, mixed effects modeling) 
+##  5) mechanistic understanding
+##      (boosted regression trees, flow thresholds)
+##  6) Visualizing spatiotemporal variation (create animated interpolation)
 
 # Load libraries ----------------------------------------------------------
 
@@ -47,16 +49,16 @@ table(zoop$Class)
 
 plot(rev(sort(table(zoop$Class)[1:20])), las = 3)
 
-##Use dplyr to group and summarize data
+##dplyr: summarize
 zooply <- zoop %>% group_by(Source, Station, Latitude, Longitude, 
-                            Date, jday, year, month, Year, wy, group) %>% 
+                            Date, jday, year, month, Year, wy, group, SalSurf, SalBott) %>% 
   summarize(sumcatch = sum(CPUE), n = length(Station))
 
-##Convert date formats to be compatible with the flow data
+##Convert date formats to be compatible with flow data
 zooply$Date <- as.Date(zooply$Date)
 ##Join zooply and wytype data
 zooply <- merge(zooply, wytype, by = "wy", all.x = T)
-##extract Param_val values for each sampling event
+##Join delta outflow data
 zooply <- merge(zooply, dto[,c("Date", "param_val")], by = "Date", all.x = T)
 
 ##Calculate unique sampling events per site
@@ -85,7 +87,7 @@ ggplot(siteN, aes(x = Longitude, y = Latitude, color = Source, shape = Source)) 
 siteNsf <- st_as_sf(siteN, coords = c("Longitude", "Latitude"), crs = 4269)
 
 ##transform CRS to match deltamapr projection
-siteNsf <- st_transform(siteNsf, st_crs(R_EDSM_Strata_17P2))
+siteNsf <- st_transform(siteNsf, st_crs(R_EDSM_Regions_1718P1))
 
 ##Use geom_sf() function in ggplot to create a map of the SFE with zoop sampling sites
 (sfemap <- ggplot() + 
@@ -114,15 +116,15 @@ sfemap + geom_sf(data = siteNsf[siteNsf$Station == "NZ028", ], color = "chartreu
   geom_sf(data = siteNsf[siteNsf$Station == "NZ028", ], size = 4)
 
 ##Plot time series of single site
-ggplot(zooply[zooply$Station == "NZ028",], aes(x = Date, y = sumcatch)) + geom_point() + theme_bw()
+ggplot(zooply[zooply$Station == "NZ048",], aes(x = Date, y = sumcatch)) + geom_point() + theme_bw()
 
 ##Plot log transformed CPUE by julien day, faceted by group
-ggplot(zooply[zooply$Station == "NZ028",], aes(x = jday, y = log10(sumcatch + 1))) + 
+ggplot(zooply[zooply$Station == "NZ048",], aes(x = jday, y = log10(sumcatch + 1))) + 
   geom_point() + stat_smooth(se = F) + theme_bw() +
   facet_grid(group ~ ., scales = "fixed")
 
 ##Plot log CPUE distribution by month
-ggplot(zooply[zooply$Station == "NZ028",], aes(x = month, y = log10(sumcatch + 1))) + 
+ggplot(zooply[zooply$Station == "NZ048",], aes(x = month, y = log10(sumcatch + 1))) + 
   geom_boxplot(aes(group = month), fill = "black") +
   facet_grid(group ~ ., scales = "fixed") + stat_smooth(se = F, color = "brown") + theme_bw()
 
@@ -139,23 +141,23 @@ ggplot(zoopgroup, aes(x = reorder(group, -sumtot), y = sumtot)) +
   geom_bar(stat = "identity") + theme_bw() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
-##Look at individual taxa (focus on indicator species)
+##Look at individual taxa
 
-ggplot(zoop[zoop$Station == "NZ028" & 
+ggplot(zoop[zoop$Station == "NZ048" & 
               zoop$Taxname == "Pseudodiaptomus forbesi",], 
        aes(x = jday, y = log10(CPUE + 1))) + 
   geom_point() + stat_smooth(se = F) + 
   theme_bw() + labs(x = "julien day", title = "Pseudodiaptomus forbesi") +
   facet_wrap(wy ~ ., scales = "fixed")
 
-ggplot(zoop[zoop$Station == "NZ028" & 
+ggplot(zoop[zoop$Station == "NZ048" & 
               zoop$Taxname %in% c("Daphnia_UnID", "Daphniidae_all_Meso", "Daphniidae_UnID" ),], 
        aes(x = jday, y = log10(CPUE + 1))) + 
   geom_point() + stat_smooth(se = F) + theme_bw() +
   labs(x = "julien day", title = "Daphia sp.") +
   facet_wrap(wy ~ ., scales = "fixed")
 
-ggplot(zoop[zoop$Station == "NZ028" & 
+ggplot(zoop[zoop$Station == "NZ048" & 
                  zoop$Taxname %in% c("Bosmina longirostris" ),], 
        aes(x = jday, y = log10(CPUE + 1))) + 
   geom_point() + stat_smooth(se = F) + theme_bw() +
@@ -175,7 +177,7 @@ glimpse(zoopcast)
 ## Community data transformation: using hellinger (see Legendre & Gallagher 2001)
 ## other common transformations include: “chi.square”, “log”, “normalize”, “range”
 deco <- decostand(zoopcast[, c("Branchiopoda", "Cirripedia", "Copepoda", 
-                               "Rotifera")], 
+                               "Rotifera", "Ostracoda", "Malacostraca")], 
                   method = "hellinger") 
 
 ##run the nmds analysis with bray distance matrix
@@ -199,6 +201,16 @@ species.scores <- as.data.frame(scores(vare.mds, "species"))
 # create a column of species, from the rownames of species.scores 
 species.scores$species <- rownames(species.scores)  
 
+##Plot nmds data in ggplot
+ggplot() +
+  geom_point(data = data.scores, aes(x = NMDS1, y = NMDS2, color = Year), size = 1.5) + theme_bw() +
+  geom_segment(data = species.scores, aes(x=0, xend=NMDS1, y=0, yend=NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")),
+               colour="black", alpha = .2, linewidth = 2) +
+  stat_ellipse(data = data.scores, aes(x = NMDS1, y = NMDS2, color = Year))+
+  geom_text(data=species.scores,aes(x=NMDS1,y=NMDS2,label=species), alpha=0.8, size = 2) +
+  theme_bw() + theme(legend.position = "bottom", legend.title = element_blank())
+
 ggplot() +
   geom_point(data = data.scores, aes(x = NMDS1, y = NMDS2, color = Year), size = 1.5) + theme_bw() +
   geom_segment(data = species.scores, aes(x=0, xend=NMDS1, y=0, yend=NMDS2),
@@ -215,7 +227,7 @@ data.scoressf <- st_as_sf(data.scores,
                           crs = 4269)
 
 ##transform CRS to match deltamapr spatial data
-data.scoressf <- st_transform(data.scoressf, st_crs(R_EDSM_Strata_17P2))
+data.scoressf <- st_transform(data.scoressf, st_crs(R_EDSM_Regions_1718P1))
 
 ##Spatial join
 dsjoin <- st_join(data.scoressf, R_EDSM_Regions_1718P1, left = T)
@@ -227,6 +239,7 @@ dsjoin$Season <- ifelse(dsjoin$Month %in% c(1:5), "early", "late")
 
 dsjoin$Regionfac <- factor(dsjoin$Region, levels = c("Far West", "North", "West", "South"))
 
+
 ggplot() +
   geom_point(data = dsjoin[,], aes(x = NMDS1, y = NMDS2, color = Year), size = 1.5) + theme_bw() +
   stat_ellipse(data = dsjoin[,], aes(x = NMDS1, y = NMDS2, color = Year))+
@@ -237,6 +250,7 @@ ggplot() +
   theme_bw() + theme(legend.position = "bottom", legend.title = element_blank()) + 
   facet_wrap(Regionfac ~ .)
 
+##Subset to early season points
 ggplot() +
   geom_point(data = dsjoin[dsjoin$Season == "early",], aes(x = NMDS1, y = NMDS2, color = Year), size = 1.5) + theme_bw() +
   stat_ellipse(data = dsjoin[dsjoin$Season == "early",], aes(x = NMDS1, y = NMDS2, color = Year))+
@@ -247,7 +261,7 @@ ggplot() +
   theme_bw() + theme(legend.position = "bottom", legend.title = element_blank()) + 
   facet_wrap(Regionfac ~ .)
 
-# Join water year type ------------------------------------------------------
+# Plot water year type ------------------------------------------------------
 
 ##Plot histogram of Sac River water year runoff index
 ggplot(wytype, aes(x = sac_index)) + 
@@ -256,11 +270,11 @@ ggplot(wytype, aes(x = sac_index)) +
   theme_bw()
 
 ##Plot single station response to water year type
-ggplot(zooply[zooply$Station == "NZ054",], aes(x = sac_yr_typefac, y = log10(sumcatch + 1))) + geom_boxplot() +
+ggplot(zooply[zooply$Station == "NZ048",], aes(x = sac_yr_typefac, y = log10(sumcatch + 1))) + geom_boxplot() +
   facet_wrap(group ~ ., scales = "free") + theme_bw()
 
 ##Plot log cladocera CPUE versus Oct-mar flow index for a single station
-ggplot(zooply[zooply$Station == "NZ054" &
+ggplot(zooply[zooply$Station == "NZ048" &
                      zooply$group %in% "Branchiopoda" & zooply$month %in% c(10:12, 1:3),], 
        aes(x = sac_oct_mar, y = log10(sumcatch + 1))) + geom_point() +
   facet_grid(group ~ ., scales = "free") + stat_smooth(se = F) + labs(x = "Oct-Mar flow index")
@@ -273,12 +287,12 @@ ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) &
   facet_wrap(Station ~ ., scales = "free") + stat_smooth(se = F, color = "red") + 
   labs(x = "Oct-Mar flow index", y = "Log cladocera CPUE")
 
-# Join flow data ----------------------------------------------------------
+# Plot flow data ----------------------------------------------------------
 
 ##Calculate mean flow for the jan-may period for each wy
 dtoply <- dto[dto$month %in% 1:5,] %>% group_by(wy) %>% summarize(meanflow = mean(param_val))
 
-##Plot log cladocera CPUE versus param_val
+##Plot log Cladocera CPUE response to delta outflow
 ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
                 grepl(zooply$Source, pattern = "20mm") &
                 zooply$group %in% "Branchiopoda",], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
@@ -287,15 +301,37 @@ ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) &
 ggplot(zooply[zooply$Station %in% "342" & 
                 zooply$group %in% "Branchiopoda" &
                 zooply$month %in% c(1:3),], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
-  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw()
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw() + 
+  labs(x = "Delta outflow (cfs)", y = "log(Branchiopoda CPUE)")
 
 ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
                 grepl(zooply$Source, pattern = "EMP") &
                 zooply$group %in% "Branchiopoda" & 
                 zooply$month %in% c(10:12, 1:3),], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw() + 
+  labs(x = "Delta outflow (cfs)", y = "log(Branchiopoda CPUE)")
+
+ggplot(zooply[zooply$Station %in% "NZ048" & 
+                zooply$group %in% "Branchiopoda" &
+                zooply$month %in% c(1:3),], aes(x = param_val, y = log10(sumcatch + 1))) + geom_point() +
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw() + 
+  labs(x = "Delta outflow (cfs)", y = "log(Branchiopoda CPUE)")
+
+##Look at Branchiopoda response to salinity
+
+ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
+                grepl(zooply$Source, pattern = "EMP") &
+                zooply$group %in% "Branchiopoda",], aes(x = SalSurf, y = log10(sumcatch + 1))) + geom_point() +
   facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw()
 
-### Prepare spatial data ----
+ggplot(zooply[zooply$Station %in% "NZ048" & 
+                zooply$group %in% "Branchiopoda" &
+                zooply$month %in% c(1:3),], aes(x = SalSurf, y = log10(sumcatch + 1))) + geom_point() +
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw() + 
+  labs(x = "Salinity (PSU)", y = "log(Branchiopoda CPUE)")
+
+# Spatial interpolation ---------------------------------------------------
+##adapted from this example: https://mgimond.github.io/Spatial/interpolation-in-r.html
 
 ##Transform delta regions to WGS84 geographic coordinate system
 deltawgs84 <- st_transform(R_EDSM_Regions_1718P1, CRS("+ellps=WGS84 +proj=longlat +datum=WGS84 +no_defs"))
@@ -309,10 +345,6 @@ zoopsf <- st_as_sf(siteN, coords = c("Longitude", "Latitude"))
 zoopsf <- st_set_crs(zoopsf, CRS("+ellps=WGS84 +proj=longlat +datum=WGS84 +no_defs"))
 ##Convert object from sf to sp
 zoopsp <- as(zoopsf, "Spatial")
-
-# Spatial interpolation ---------------------------------------------------
-##adapted from this example: https://mgimond.github.io/Spatial/interpolation-in-r.html
-
 ##Create an empty grid where n is the total number of cells
 grd <- as.data.frame(spsample(zoopsp, "regular", n=100000))
 names(grd) <- c("X", "Y")
@@ -392,7 +424,7 @@ for(i in unique(cladsp$wy)){
 
 # Create animation --------------------------------------------------------
 
-##Use the magick package to load, scale, andjoin images in an animated gif
+##Use the magick package to load, scale, and join images in an animated gif
 list.files(path='output/Branchiopoda_annual/', pattern = '*.png', full.names = TRUE) %>% 
   image_read() %>% # reads each path file
   image_scale("1000") %>% # resize image
