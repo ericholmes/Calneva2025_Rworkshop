@@ -4,11 +4,11 @@
 
 # Skills for new coders: 
 #         1) learn how to trouble shoot your code: 
-#             a. reousrces: help documents, forums, AI chatbots
+#             a. resources: help documents, forums, AI chatbots
 #             b. ask the right questions: be explicit
 #             c. know how to make a minimal reproducible example
 #         2) package knowledge
-#         3) Break a large project into components and work step by step:
+#         3) When starting a project, break it into components and work step by step:
 #             a. create an outline to write code like you would write an essay
 
 ## Load Libraries -----------------------------------------------------------
@@ -18,7 +18,7 @@ library(sf)
 library(leaflet)
 library(tmap)
 
-##  Indexing ----------------------------------------------------------------
+## Indexing -----------------------------------------------------------------
 
 df <- data.frame("col1" = letters, "col2" = 1:26)
 
@@ -30,46 +30,46 @@ df[1,]
 df[,2]
 
 ## Operators ----------------------------------------------------------------
-# == != > < >= | & %in% <- + - ^
+## == != > < >= | & %in% <- + - ^
 
-##Equal to
+## Equal to
 df[df$col1 == "a",]
-##Not equal to
+## Not equal to
 df[df$col1 != "a",]
-##Less than or equal to
+## Less than or equal to
 df[df$col2 <= 5,]
-##Greater than or equal to
+## Greater than or equal to
 df[df$col2 >= 5,]
 ## | Element-wise OR
 df[df$col1 == "a" | df$col2 == 2,]
 ## & Element-wise AND
 df[df$col1 == "a" & df$col2 == 1,]
-##Membership
+## Membership
 df[df$col1 %in% c(letters[1:5]),]
 
 ## Loops --------------------------------------------------------------------
 
-##For loop
+## For loop
 num_vector <- df$col2
 for(i in num_vector){
   print(i)
 }
 
-##While loop
+## While loop
 count = 1
 while(count <= 26){
   print(count)
   count <- count + 1
 }
 
-##Using a loop, try to build a dataframe identical to our original df
+## Using a loop, try to build a dataframe identical to our original df
 df2 <- data.frame()
 for(j in 1:26){
   print(j)
   df2 <- rbind(df2, data.frame(col1 = letters[j], col2 = j))
 }
 
-##Check if it worked
+## Check if it worked
 df == df2
 
 ## Functions ----------------------------------------------------------------
@@ -88,6 +88,7 @@ df == df3
 
 ## Conditionals -------------------------------------------------------------
 
+## conditional element selection
 df$col3 <- ifelse(df$col1 %in% letters[1:13], "strawberry", "banana")
 
 ## nested 
@@ -95,7 +96,7 @@ df$col4 <- ifelse(df$col1 %in% letters[1:8], "strawberry",
                   ifelse(df$col1 %in% letters[9:16], "banana", 
                          ifelse(df$col1 %in% letters[17:24], "smoothie", "RACCOONS")))
 
-##Using a conditional to see if df4 exists. If so, delete it; if not, create it
+## Using a conditional to see if df4 exists. If so, delete it; if not, create it
 if(exists("df4")){print("df4 already exists, removing df4")
   rm(df4)} else{
     print("df4 cannot be found, creating df4")
@@ -128,35 +129,36 @@ df5long <- df5wide %>% pivot_longer(cols = c(letters[1:5]),
 
 ## Joining/merging data -----------------------------------------------------
 
+## create lookup table
 key <- data.frame(col1 = letters[1:5], fruit = c("apple", "banana", "cantelope", "date", "elderberry"))
 
-#left merge
+## left merge
 df5merge <- merge(df5, key, by = "col1", all.x = T)
 
 ## Basic mapping tutorial with simple features (sf) package -----------------
 
-# Define domain for coordinates
+## Define domain for coordinates
 xmin <- -122
 xmax <- -121
 ymin <- 38
 ymax <- 39
 
-#Create 100 random points within domain
+## Create 100 random points within domain
 rand_pts <- data.frame(id = 1:100,
                        lon = runif(100, xmin, xmax),
                        lat = runif(100, ymin, ymax))
 
-# Create an sf point object
+## Create an sf point object
 rand_pts_sf <- st_as_sf(rand_pts, coords = c("lon", "lat"), crs = 4326)
 
-# Create a matrix of coordinates for a box polygon
+## Create a matrix of coordinates for a box polygon
 boxdf <- data.frame(lon = c(xmin, xmax, xmax, xmin, xmin),
                     lat = c(ymin, ymin, ymax, ymax, ymin))
 
-# Create an sf polygon object
+## Create an sf polygon object
 box_polygon <- st_polygon(list(as.matrix(boxdf)))
 
-# Convert polygon to an sf object
+## Convert polygon to an sf object
 box_sf <- st_sf(geometry = st_sfc(box_polygon), crs = 4326)
 
 ### simple base R plot ----
