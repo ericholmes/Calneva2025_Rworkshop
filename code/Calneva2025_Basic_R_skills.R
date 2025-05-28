@@ -16,6 +16,7 @@
 library(tidyverse)
 library(sf)
 library(leaflet)
+library(tmap)
 
 ##  Indexing ----------------------------------------------------------------
 
@@ -158,11 +159,11 @@ box_polygon <- st_polygon(list(as.matrix(boxdf)))
 # Convert polygon to an sf object
 box_sf <- st_sf(geometry = st_sfc(box_polygon), crs = 4326)
 
-## Simple plot
+### simple base R plot ----
 plot(box_sf$geometry)
 plot(rand_pts_sf$geometry, add = T)
 
-## simple ggplot
+### simple ggplot map ----
 ggplot() + 
   geom_polygon(data = boxdf, aes(x = lon, y = lat), fill = NA, color = "red") + 
   geom_point(data = rand_pts, aes(x = lon, y = lat)) + 
@@ -172,6 +173,35 @@ ggplot() +
 ggplot() + geom_sf(data = box_sf, fill = NA) + 
   geom_sf(data = rand_pts_sf) + theme_minimal()
 
-## Plot sampling sites in an interactive map
+## project sf objects to WGS84 Psuedo-mercator for plotting in tmap
+box_sf_3857 <- st_transform(box_sf, crs = 3857)
+rand_pts_sf_3857 <- st_transform(rand_pts_sf, crs = 3857)
+
+### tmap static map ----
+tmap_mode("plot") # Use "view" for interactive maps
+tm_basemap("OpenStreetMap") +
+  tm_shape(box_sf_3857) +
+  tm_polygons(border.col = "red", col = NULL) +
+  tm_shape(rand_pts_sf_3857) +
+  tm_dots(size = .5, fill = "blue")
+
+## tmap interactive map
+tmap_mode("view") # Use "view" for interactive maps
+tm_basemap("OpenStreetMap") +
+  tm_shape(box_sf_3857) +
+  tm_polygons(border.col = "red", col = NULL) +
+  tm_shape(rand_pts_sf_3857) +
+  tm_dots(size = .5, fill = "blue") 
+
+### leaflet interactive map ----
 leaflet() %>% addPolygons(data = box_sf, fill = NA) %>% 
   addCircles(data = rand_pts_sf) %>% addTiles()
+
+## Spruced up leaflet map with layer control
+leaflet() %>% addPolygons(data = box_sf, fill = NA, group = "Bounding box", color = "red") %>% 
+  addCircles(data = rand_pts_sf, group = "Random points") %>% 
+  addProviderTiles(providers$CartoDB.Positron, group = "Grey background") %>%
+  addProviderTiles("Esri.WorldImagery", group = "Imagery") %>%
+  addLayersControl(baseGroups = c("Grey background", "Imagery"),
+                   overlayGroups = c("Bounding box", "Random points"),
+                   options = layersControlOptions(collapsed = FALSE))
