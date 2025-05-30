@@ -112,8 +112,8 @@ leaflet(siteN[siteN$n>50,]) %>% addCircles(lng = ~Longitude, lat = ~Latitude,
   addLayersControl(baseGroups = c("Base","Imagery"), options = layersControlOptions(collapsed = FALSE))
 
 ##Highlight one site at the confluence
-sfemap + geom_sf(data = siteNsf[siteNsf$Station == "NZ028", ], color = "chartreuse", size = 7) +
-  geom_sf(data = siteNsf[siteNsf$Station == "NZ028", ], size = 4)
+sfemap + geom_sf(data = siteNsf[siteNsf$Station == "NZ048", ], color = "chartreuse", size = 7) +
+  geom_sf(data = siteNsf[siteNsf$Station == "NZ048", ], size = 4)
 
 ##Plot time series of single site
 ggplot(zooply[zooply$Station == "NZ048",], aes(x = Date, y = sumcatch)) + geom_point() + theme_bw()
@@ -132,7 +132,7 @@ zooptax <- zoop %>% group_by(Taxname, group) %>% summarize(sumtot = sum(CPUE))
 zoopgroup <- zoop %>% group_by(group) %>% summarize(sumtot = sum(CPUE))
 
 ggplot(zooptax, aes(x = reorder(Taxname, sumtot), y = sumtot)) + coord_flip() +
-  geom_bar(stat = "identity") + facet_wrap(group ~ ., scales = "free_y") #+ scale_y_log10()
+  geom_bar(stat = "identity") + facet_wrap(group ~ ., scales = "free_y") + scale_y_log10()
 
 ggplot(zooptax[zooptax$group == "Copepoda",], aes(x = reorder(Taxname, sumtot), y = sumtot)) + coord_flip() +
   geom_bar(stat = "identity") + facet_wrap(group ~ ., scales = "free_y") #+ scale_y_log10()
@@ -151,14 +151,14 @@ ggplot(zoop[zoop$Station == "NZ048" &
   facet_wrap(wy ~ ., scales = "fixed")
 
 ggplot(zoop[zoop$Station == "NZ048" & 
-              zoop$Taxname %in% c("Daphnia_UnID", "Daphniidae_all_Meso", "Daphniidae_UnID" ),], 
+                 zoop$Taxname %in% c("Bosmina longirostris" ),], 
        aes(x = jday, y = log10(CPUE + 1))) + 
   geom_point() + stat_smooth(se = F) + theme_bw() +
   labs(x = "julien day", title = "Daphia sp.") +
   facet_wrap(wy ~ ., scales = "fixed")
 
 ggplot(zoop[zoop$Station == "NZ048" & 
-                 zoop$Taxname %in% c("Bosmina longirostris" ),], 
+              zoop$Taxname %in% c("Daphnia_UnID", "Daphniidae_all_Meso", "Daphniidae_UnID" ),], 
        aes(x = jday, y = log10(CPUE + 1))) + 
   geom_point() + stat_smooth(se = F) + theme_bw() +
   labs(x = "julien day", title = "Daphia sp.") +
@@ -169,15 +169,15 @@ ggplot(zoop[zoop$Station == "NZ048" &
 # Change data structure from long to wide
 zoopcast <- pivot_wider(zooply[zooply$Source == "20mm" & zooply$Year %in% c(2015, 2017),#c(2015, 2017),
                          c("Year", "group", "sumcatch", "Station", "Latitude", "Longitude", "Date")],
-                  names_from = group, values_from = "sumcatch")
+                  names_from = group, values_from = "sumcatch") %>% data.frame()
 
-glimpse(zoopcast)
+hist(zoopcast$Malacostraca)
 
 # zoopcast[is.na(zoopcast)] <- 0
 ## Community data transformation: using hellinger (see Legendre & Gallagher 2001)
 ## other common transformations include: “chi.square”, “log”, “normalize”, “range”
 deco <- decostand(zoopcast[, c("Branchiopoda", "Cirripedia", "Copepoda", 
-                               "Rotifera", "Ostracoda", "Malacostraca")], 
+                               "Rotifera", "Ostracoda")], 
                   method = "hellinger") 
 
 ##run the nmds analysis with bray distance matrix
@@ -290,7 +290,7 @@ ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) &
 # Plot flow data ----------------------------------------------------------
 
 ##Calculate mean flow for the jan-may period for each wy
-dtoply <- dto[dto$month %in% 1:5,] %>% group_by(wy) %>% summarize(meanflow = mean(param_val))
+dtoply <- dto[dto$month %in% 1:3,] %>% group_by(wy) %>% summarize(meanflow = mean(param_val))
 
 ##Plot log Cladocera CPUE response to delta outflow
 ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
@@ -322,7 +322,8 @@ ggplot(zooply[zooply$Station %in% "NZ048" &
 ggplot(zooply[zooply$Station %in% unlist(siteN[siteN$n > 50, "Station"]) & 
                 grepl(zooply$Source, pattern = "EMP") &
                 zooply$group %in% "Branchiopoda",], aes(x = SalSurf, y = log10(sumcatch + 1))) + geom_point() +
-  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw()
+  facet_wrap(Station ~ .) + stat_smooth(se = F, color = "red") + theme_bw() +
+  labs(x = "Salinity (PSU)", y = "log(Branchiopoda CPUE)")
 
 ggplot(zooply[zooply$Station %in% "NZ048" & 
                 zooply$group %in% "Branchiopoda" &
